@@ -114,6 +114,18 @@ namespace GgStatAggregator.Components.Pages
         }
 
         private async Task CopyPlayerNote() => await JS.InvokeVoidAsync("navigator.clipboard.writeText", Model.PlayerNote);
+
+        private async Task ClearPlayerFields() 
+        {
+            Model.SelectedPlayer = null;
+            Model.PlayerNote = string.Empty;
+            Model.Hands = 0;
+            Model.Vpip = 0;
+            Model.Pfr = 0;
+            Model.Steal = 0;
+            Model.ThreeBet = 0;
+            await PlayerAutocomplete.ClearAsync();
+        }
     }
 
     public class StatAggregatorForm
