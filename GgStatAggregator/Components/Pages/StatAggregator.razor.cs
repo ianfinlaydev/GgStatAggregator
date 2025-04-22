@@ -90,6 +90,11 @@ namespace GgStatAggregator.Components.Pages
 
             Model.SelectedPlayer = await PlayerService.GetByIdAsync(Model.SelectedPlayer.Id);
             Model.PlayerNote = Model.SelectedPlayer.ToString();
+            await CopyPlayerNote();
+
+            await DialogService.ShowMessageBox("Success", 
+                $"Stats for {Model.SelectedPlayer.Name} added successfully and note is copied to clipboard.", 
+                yesText: "OK");
 
             StateHasChanged();
         }
@@ -113,13 +118,13 @@ namespace GgStatAggregator.Components.Pages
                     });
 
                     await DialogService.ShowMessageBox("Success", $"Player: '{name}' added successfully.", yesText: "OK");
+
+                    AllPlayers = await PlayerService.GetAllAsync();
+
+                    await PlayerAutocomplete.FocusAsync();
+
+                    StateHasChanged();
                 }
-
-                AllPlayers = await PlayerService.GetAllAsync();
-
-                await PlayerAutocomplete.FocusAsync();
-
-                StateHasChanged();
             }
         }
 
