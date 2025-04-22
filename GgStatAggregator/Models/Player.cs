@@ -15,8 +15,7 @@ namespace GgStatAggregator.Models
 
         public ICollection<StatSet> StatSets { get; set; } = [];
 
-        public override string ToString() => $"Player: {Name}\n" +
-           $"Hands: {HandsAggregate}\n" +
+        public override string ToString() => $"Hands: {HandsAggregate}\n" +
            $"VPIP: {VpipAggregate:F1}\n" +
            $"PFR: {PfrAggregate:F1}\n" +
            $"ATS: {StealAggregate:F1}\n" +
