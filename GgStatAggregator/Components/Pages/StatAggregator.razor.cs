@@ -36,6 +36,14 @@ namespace GgStatAggregator.Components.Pages
             AllTables = await TableService.GetAllAsync();
         }
 
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (firstRender && PlayerAutocomplete is not null)
+            {
+                await PlayerAutocomplete.FocusAsync();
+            }
+        }
+
         private Task<IEnumerable<Player>> SearchPlayers(string value, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(value))
@@ -108,6 +116,8 @@ namespace GgStatAggregator.Components.Pages
                 }
 
                 AllPlayers = await PlayerService.GetAllAsync();
+
+                await PlayerAutocomplete.FocusAsync();
 
                 StateHasChanged();
             }

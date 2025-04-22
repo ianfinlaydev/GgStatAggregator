@@ -16,6 +16,8 @@ namespace GgStatAggregator.Components.Dialogs
         private readonly IDialogService DialogService = dialogService;
         private readonly GgStatAggregatorDbContext DbContext = context;
 
+        private MudTextField<string> NameTextField;
+
         private AddPlayerForm Model { get; set; } = new();
 
         private async Task OnValidSubmit(EditContext editContext)
@@ -33,6 +35,15 @@ namespace GgStatAggregator.Components.Dialogs
         }
 
         private void Cancel() => MudDialog.Cancel();
+
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            await Task.Delay(100); // small delay helps ensure dialog is fully rendered
+            if (firstRender && NameTextField is not null)
+            {
+                await NameTextField.FocusAsync();
+            }
+        }
     }
 
     public class AddPlayerForm
