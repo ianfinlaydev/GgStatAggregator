@@ -1,0 +1,16 @@
+﻿<MudDialog>
+    <TitleContent>
+        Add New Player
+    </TitleContent>
+    <DialogContent>
+        <EditForm Model="@Model" OnValidSubmit="OnValidSubmit" id="form-id">
+            <DataAnnotationsValidator />
+            <MudTextField For="@(() => Model.Name)" @bind-Value="Model.Name" Label="Name" Variant="Variant.Text" />
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Color="Color.Secondary">Cancel</MudButton>
+        <MudButton ButtonType="ButtonType.Submit" Form="form-id" Color="Color.Primary" Variant="Variant.Filled">Save</MudButton>
+    </DialogActions>
+
+</MudDialog>

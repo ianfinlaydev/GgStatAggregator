@@ -1,0 +1,89 @@
+﻿@page "/statset"
+@using System.Threading
+@using GgStatAggregator.Models
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+
+<PageTitle>Stat Aggregator</PageTitle>
+
+<EditForm Model="@Model" OnValidSubmit="OnValidSubmit">
+    <DataAnnotationsValidator />
+    <MudContainer Class="mt-16" MaxWidth="MaxWidth.Medium">
+        <MudGrid Spacing="12" Class="mt-16">
+            <MudItem xs="7">
+                <MudText Typo="Typo.h5" GutterBottom="true">Player Stats</MudText>
+                <MudGrid>
+                    <MudItem xs="10">
+                        <MudAutocomplete T="Player"
+                                         @ref="PlayerAutocomplete"
+                                         Label="Player Name"
+                                         For="@(() => Model.SelectedPlayer)"
+                                         Value="Model.SelectedPlayer"
+                                         ValueChanged="OnValueChanged"
+                                         SearchFunc="SearchPlayers"
+                                         ToStringFunc="@(p => p?.Name)"
+                                         Clearable="true"
+                                         ResetValueOnEmptyText="true"
+                                         SelectValueOnTab="true"
+                                         AdornmentIcon="@Icons.Material.Filled.Search"
+                                         AdornmentColor="Color.Primary">
+                            <ProgressIndicatorInPopoverTemplate>
+                                <MudList T="string" ReadOnly>
+                                    <MudListItem>
+                                        Loading...
+                                    </MudListItem>
+                                </MudList>
+                            </ProgressIndicatorInPopoverTemplate>
+                        </MudAutocomplete>
+                    </MudItem>
+                    <MudItem xs="2">
+                        <MudIconButton Icon="@Icons.Material.Filled.PersonAdd" Color="Color.Primary" OnClick="AddNewPlayerAsync" Size="Size.Large" />
+                    </MudItem>
+                    <MudItem xs="4">
+                        <MudSelect T="Stake" For="@(() => Model.SelectedStake)" @bind-Value="Model.SelectedStake" Label="Stake">
+                            @foreach (var stake in AllStakes)
+                            {
+                                <MudSelectItem Value="@stake">@stake</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="4">
+                        <MudNumericField For="@(() => Model.SelectedTableNumber)" @bind-Value="Model.SelectedTableNumber" Label="Table #" HideSpinButtons="true" />
+                    </MudItem>
+                    <MudItem xs="4">
+                        <MudNumericField For="@(() => Model.Hands)" @bind-Value="Model.Hands" Label="Hands" HideSpinButtons="true" />
+                    </MudItem>
+                    <MudItem xs="3">
+                        <MudNumericField For="@(() => Model.Vpip)" @bind-Value="Model.Vpip" Label="VPIP" HideSpinButtons="true" />
+                    </MudItem>
+                    <MudItem xs="3">
+                        <MudNumericField For="@(() => Model.Pfr)" @bind-Value="Model.Pfr" Label="PFR" HideSpinButtons="true" />
+                    </MudItem>
+                    <MudItem xs="3">
+                        <MudNumericField For="@(() => Model.Steal)" @bind-Value="Model.Steal" Label="ATS" HideSpinButtons="true" />
+                    </MudItem>
+                    <MudItem xs="3">
+                        <MudNumericField For="@(() => Model.ThreeBet)" @bind-Value="Model.ThreeBet" Label="3bet" HideSpinButtons="true" />
+                    </MudItem>
+                    <MudItem xs="12" Class="d-flex justify-center">
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-8">Aggregate Stats</MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudItem>
+            <MudItem xs="5">
+                <MudText Typo="Typo.h5" GutterBottom="true">Notes</MudText>
+                <MudPaper Class="d-flex flex-column" Style="height:100%;" Outlined="true">
+                    <MudText WhiteSpace="WhiteSpace.PreWrap">
+                        <pre>@Model.PlayerNote</pre>
+                    </MudText>
+                    <div class="mt-auto">
+                        <MudDivider />
+                        <div class="d-flex pa-4">
+                            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Primary" OnClick="CopyPlayerNote" />
+                        </div>
+                    </div>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudContainer>    
+</EditForm>
