@@ -6,6 +6,8 @@ using GgStatAggregator.Services;
 using Serilog;
 using Serilog.Sinks.MSSqlServer.Sinks.MSSqlServer.Options;
 using Serilog.Events;
+using GgStatAggregator.Logger;
+using Serilog.Sinks.MSSqlServer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,19 +30,7 @@ builder.Services.AddDbContext<GgStatAggregatorDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add Serilog into the .NET ILogger Pipeline
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-    .MinimumLevel.Override("System", LogEventLevel.Warning)
-    .MinimumLevel.Information()
-    .WriteTo.Console()
-    .WriteTo.MSSqlServer(
-        connectionString: builder.Configuration.GetConnectionString("DefaultConnection"),
-        sinkOptions: new Serilog.Sinks.MSSqlServer.MSSqlServerSinkOptions
-        {
-            TableName = "Logs",
-            AutoCreateSqlTable = true
-        })
-    .CreateLogger();
+Log.Logger = LoggerUtility.ConfigureLogger(builder.Configuration.GetConnectionString("DefaultConnection"));
 
 builder.Host.UseSerilog();
 
