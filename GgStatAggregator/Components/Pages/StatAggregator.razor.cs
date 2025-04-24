@@ -14,13 +14,15 @@ namespace GgStatAggregator.Components.Pages
         IStatSetService statSetService, 
         ITableService tableService, 
         IDialogService dialogService,
-        IJSRuntime js) : ComponentBase
+        IJSRuntime js,
+        ILogger<StatAggregator> logger) : ComponentBase
     {
         private readonly IPlayerService PlayerService = playerService;
         private readonly IStatSetService StatSetService = statSetService;
         private readonly ITableService TableService = tableService;
         private readonly IDialogService DialogService = dialogService;
         private readonly IJSRuntime JS = js;
+        private readonly ILogger<StatAggregator> Logger = logger;
 
         private readonly IEnumerable<Stake> AllStakes = Enum.GetValues<Stake>().Cast<Stake>();
         private IEnumerable<Player> AllPlayers;
@@ -121,7 +123,10 @@ namespace GgStatAggregator.Components.Pages
 
                     AllPlayers = await PlayerService.GetAllAsync();
 
-                    await PlayerAutocomplete.FocusAsync();
+                    if (PlayerAutocomplete is not null)
+                    {
+                        await PlayerAutocomplete.FocusAsync();
+                    }
 
                     StateHasChanged();
                 }
@@ -148,12 +153,13 @@ namespace GgStatAggregator.Components.Pages
         [Required(ErrorMessage = "Player must be selected.")]
         public Player SelectedPlayer { get; set; }
 
-        [Required(ErrorMessage = "Stake must be selected.")]
+        [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Stake must be selected.")]
         public Stake SelectedStake { get; set; }
 
-        [Required(ErrorMessage = "Table number must be selected.")]
-        public int? SelectedTableNumber { get; set; }
+        [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "Value must be at least 1.")]
+        public int SelectedTableNumber { get; set; }
 
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Value must be at least 1.")]

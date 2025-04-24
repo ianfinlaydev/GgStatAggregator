@@ -3,6 +3,9 @@ using GgStatAggregator.Components;
 using GgStatAggregator.Data;
 using Microsoft.EntityFrameworkCore;
 using GgStatAggregator.Services;
+using Serilog;
+using Serilog.Sinks.MSSqlServer.Sinks.MSSqlServer.Options;
+using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +26,23 @@ builder.Configuration
 // Add DB Context
 builder.Services.AddDbContext<GgStatAggregatorDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Add Serilog into the .NET ILogger Pipeline
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("System", LogEventLevel.Warning)
+    .MinimumLevel.Information()
+    .WriteTo.Console()
+    .WriteTo.MSSqlServer(
+        connectionString: builder.Configuration.GetConnectionString("DefaultConnection"),
+        sinkOptions: new Serilog.Sinks.MSSqlServer.MSSqlServerSinkOptions
+        {
+            TableName = "Logs",
+            AutoCreateSqlTable = true
+        })
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 // Add services
 builder.Services.AddScoped(typeof(IPlayerService), typeof(PlayerService));
