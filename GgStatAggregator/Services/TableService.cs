@@ -17,6 +17,9 @@ namespace GgStatAggregator.Services
 
         public async Task<Table> GetByIdAsync(int id) => await _context.Tables.FindAsync(id);
 
+        public async Task<Table> GetByStakeAndNumber(Stake stake, int number) => 
+            await _context.Tables.FirstOrDefaultAsync(t => t.Stake == stake && t.TableNumber == number);
+
         public async Task<Table> AddAsync(Table table)
         {
             _context.Tables.Add(table);

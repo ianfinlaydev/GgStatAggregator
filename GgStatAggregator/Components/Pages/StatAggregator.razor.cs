@@ -66,7 +66,7 @@ namespace GgStatAggregator.Components.Pages
 
         private async Task OnValidSubmit(EditContext editContext)
         {
-            var table = AllTables.FirstOrDefault(t => t.Stake == Model.SelectedStake && t.TableNumber == Model.SelectedTableNumber);
+            var table = await TableService.GetByStakeAndNumber(Model.SelectedStake, Model.SelectedTableNumber);
 
             if (table == null)
             {
@@ -92,13 +92,12 @@ namespace GgStatAggregator.Components.Pages
 
             Model.SelectedPlayer = await PlayerService.GetByIdAsync(Model.SelectedPlayer.Id);
             Model.PlayerNote = Model.SelectedPlayer.ToString();
-            await CopyPlayerNote();
+
+            StateHasChanged();
 
             await DialogService.ShowMessageBox("Success", 
                 $"Stats for {Model.SelectedPlayer.Name} added successfully and note is copied to clipboard.", 
                 yesText: "OK");
-
-            StateHasChanged();
         }
 
         private async Task AddNewPlayerAsync()
