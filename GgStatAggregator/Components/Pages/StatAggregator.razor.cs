@@ -3,6 +3,8 @@ using GgStatAggregator.Models;
 using GgStatAggregator.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using MudBlazor;
 using System.ComponentModel.DataAnnotations;
@@ -24,111 +26,124 @@ namespace GgStatAggregator.Components.Pages
         private readonly IJSRuntime JS = js;
         private readonly ILogger<StatAggregator> Logger = logger;
 
-        private readonly IEnumerable<Stake> AllStakes = Enum.GetValues<Stake>().Cast<Stake>();
-        private IEnumerable<Player> AllPlayers;
-        private IEnumerable<Table> AllTables;
+        private readonly IEnumerable<Stake> Stakes = Enum.GetValues<Stake>().Cast<Stake>();
 
-        private MudAutocomplete<Player> PlayerAutocomplete;
-
-        private StatAggregatorForm Model { get; set; } = new();
-
-        protected override async Task OnInitializedAsync()
-        {
-            AllPlayers = await PlayerService.GetAllAsync();
-            AllTables = await TableService.GetAllAsync();
-        }
+        private StatAggregatorForm Model = new();
+        private MudAutocomplete<string> PlayerAutocomplete;
+        private MudNumericField<int> HandNumericField;
+        private MudNumericField<int> TableNumericField;
+        private EditForm editForm;
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             if (firstRender && PlayerAutocomplete is not null)
             {
-                await PlayerAutocomplete.FocusAsync();
+                await TableNumericField.FocusAsync();
             }
         }
 
-        private Task<IEnumerable<Player>> SearchPlayers(string value, CancellationToken cancellationToken)
+        private async Task<IEnumerable<string>> SearchNamesAsync(string value, CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(value))
+            IEnumerable<Player> players = await PlayerService.GetAllAsync(p => EF.Functions.Like(p.Name, $"%{value}%"));
+
+            return players.Select(p => p.Name);
+        }
+
+        private async Task BeforeSubmit()
+        {
+            if (!editForm.EditContext.Validate())
             {
-                return Task.FromResult(AllPlayers);
+                return;
             }
 
-            return Task.FromResult(AllPlayers
-                .Where(p => p.Name.Contains(value, StringComparison.OrdinalIgnoreCase)));
-        }
+            Model.SelectedTable = (await TableService
+                .GetAllAsync(t => t.Stake == Model.SelectedStake && t.TableNumber == Model.SelectedTableNumber)).FirstOrDefault();
 
-        private async Task OnValueChanged(Player player)
-        {
-            Model.SelectedPlayer = player;
-            await Task.Delay(100); // Give the dropdown time to close for Blur to work
-            await PlayerAutocomplete.BlurAsync();
-        }
+            Model.SelectedPlayer = (await PlayerService
+                .GetAllAsync(p => p.Name == Model.SelectedName)).FirstOrDefault();
 
-        private async Task OnValidSubmit(EditContext editContext)
-        {
-            var table = await TableService.GetByStakeAndNumber(Model.SelectedStake, Model.SelectedTableNumber);
-
-            if (table == null)
+            if (Model.SelectedTable == null)
             {
-                table = new Table()
+                Model.SelectedTable = new Table()
                 {
                     Stake = Model.SelectedStake,
-                    TableNumber = (int)Model.SelectedTableNumber
+                    TableNumber = Model.SelectedTableNumber
                 };
 
-                await TableService.AddAsync(table);
+                await TableService.AddAsync(Model.SelectedTable);
             }
 
-            await StatSetService.AddAsync(new StatSet()
+            if (Model.SelectedPlayer == null)
+            {
+                var result = await DialogService.ShowMessageBox(
+                    "Create Player",
+                    $"Player: [{Model.SelectedName}] does not exist. Create new player?",
+                    yesText: "Yes",
+                    cancelText: "Cancel",
+                    options: new DialogOptions { CloseOnEscapeKey = true });
+
+                if (result == false)
+                    return;
+
+                Model.SelectedPlayer = new Player()
+                {
+                    Name = Model.SelectedName
+                };
+
+                await PlayerService.AddAsync(Model.SelectedPlayer);
+            }
+
+            if (Model.SelectedTable is not null 
+                && Model.SelectedPlayer is not null)
+            {
+                await HandleValidSubmit(editForm.EditContext);
+            }
+        }
+
+        private async Task HandleValidSubmit(EditContext editContext)
+        {
+            Model.StatSet = new StatSet()
             {
                 PlayerId = Model.SelectedPlayer.Id,
-                TableId = table.Id,
+                TableId = Model.SelectedTable.Id,
                 Hands = Model.Hands,
                 Vpip = Model.Vpip,
                 Pfr = Model.Pfr,
                 Steal = Model.Steal,
                 ThreeBet = Model.ThreeBet
-            });
+            };
 
-            Model.SelectedPlayer = await PlayerService.GetByIdAsync(Model.SelectedPlayer.Id);
+            await StatSetService.AddAsync(Model.StatSet);
+
+            Model.SelectedPlayer.StatSets = await StatSetService.GetAllAsync(s => s.PlayerId == Model.SelectedPlayer.Id);
             Model.PlayerNote = Model.SelectedPlayer.ToString();
 
             StateHasChanged();
 
+            //TODO: default exit on escape key
             await DialogService.ShowMessageBox("Success", 
-                $"Stats for {Model.SelectedPlayer.Name} added successfully and note is copied to clipboard.", 
-                yesText: "OK");
+                $"Stats for {Model.SelectedPlayer.Name} added successfully.", 
+                yesText: "OK",
+                options: new DialogOptions { CloseOnEscapeKey = true });
         }
 
-        private async Task AddNewPlayerAsync()
+        private async Task HandleKeyDownAsync(KeyboardEventArgs args)
         {
-            var options = new DialogOptions { CloseOnEscapeKey = true };
-
-            var dialog = await DialogService.ShowAsync<AddPlayerDialog>("Add New Player", options);
-            var result = await dialog.Result;
-
-            if (!result.Canceled)
+            if (args.Key == "Enter")
             {
-                var name = result.Data.ToString();
-
-                if (!string.IsNullOrWhiteSpace(name))
-                {
-                    await PlayerService.AddAsync(new Player 
-                    { 
-                        Name = name 
-                    });
-
-                    await DialogService.ShowMessageBox("Success", $"Player: '{name}' added successfully.", yesText: "OK");
-
-                    AllPlayers = await PlayerService.GetAllAsync();
-
-                    if (PlayerAutocomplete is not null)
-                    {
-                        await PlayerAutocomplete.FocusAsync();
-                    }
-
-                    StateHasChanged();
-                }
+                //Allow default behaviour
+            }
+            else if (args.Key == "Tab")
+            {
+                Model.SelectedName = PlayerAutocomplete.Text;
+                await PlayerAutocomplete.CloseMenuAsync();
+                await HandNumericField.FocusAsync();
+            }
+            else if (args.Key == "Escape")
+            {
+                await PlayerAutocomplete.CloseMenuAsync();
+                await Task.Delay(100); // Give the dropdown time to close for Blur to work
+                await PlayerAutocomplete.BlurAsync();
             }
         }
 
@@ -150,11 +165,12 @@ namespace GgStatAggregator.Components.Pages
     public class StatAggregatorForm
     {
         [Required(ErrorMessage = "Player must be selected.")]
-        public Player SelectedPlayer { get; set; }
+        [StringLength(50, MinimumLength = 1, ErrorMessage = "Player name must be 1-50 character.")]
+        public string SelectedName { get; set; }
 
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Stake must be selected.")]
-        public Stake SelectedStake { get; set; }
+        public Stake SelectedStake { get; set; } = Stake.NL10;
 
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Value must be at least 1.")]
@@ -179,6 +195,12 @@ namespace GgStatAggregator.Components.Pages
         [Required]
         [Range(0, 100, ErrorMessage = "Value must be between 0 and 100.")]
         public double ThreeBet { get; set; }
+
+        public Player SelectedPlayer { get; set; }
+
+        public Table SelectedTable { get; set; }
+
+        public StatSet StatSet { get; set; }
 
         public string PlayerNote { get; set; }
     }

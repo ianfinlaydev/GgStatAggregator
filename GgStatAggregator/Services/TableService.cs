@@ -1,6 +1,7 @@
 ﻿using GgStatAggregator.Data;
 using GgStatAggregator.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace GgStatAggregator.Services
 {
@@ -15,10 +16,10 @@ namespace GgStatAggregator.Services
 
         public async Task<List<Table>> GetAllAsync() => await _context.Tables.ToListAsync();
 
-        public async Task<Table> GetByIdAsync(int id) => await _context.Tables.FindAsync(id);
+        public async Task<List<Table>> GetAllAsync(Expression<Func<Table, bool>> filter)
+            => await _context.Tables.AsQueryable().Where(filter).ToListAsync();
 
-        public async Task<Table> GetByStakeAndNumber(Stake stake, int number) => 
-            await _context.Tables.FirstOrDefaultAsync(t => t.Stake == stake && t.TableNumber == number);
+        public async Task<Table> GetByIdAsync(int id) => await _context.Tables.FindAsync(id);
 
         public async Task<Table> AddAsync(Table table)
         {

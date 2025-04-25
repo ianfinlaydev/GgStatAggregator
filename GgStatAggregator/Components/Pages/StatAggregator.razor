@@ -6,25 +6,38 @@
 
 <PageTitle>Stat Aggregator</PageTitle>
 
-<EditForm Model="@Model" OnValidSubmit="OnValidSubmit">
+<EditForm @ref="editForm" Model="@Model" OnValidSubmit="@HandleValidSubmit">
     <DataAnnotationsValidator />
     <MudContainer Class="mt-16" MaxWidth="MaxWidth.Medium">
         <MudGrid Spacing="12" Class="mt-16">
             <MudItem xs="7">
                 <MudText Typo="Typo.h5" GutterBottom="true">Player Stats</MudText>
                 <MudGrid>
-                    <MudItem xs="10">
-                        <MudAutocomplete T="Player"
+                    <MudItem xs="4">
+                        <MudSelect T="Stake" For="@(() => Model.SelectedStake)" @bind-Value="Model.SelectedStake" Label="Stake">
+                            @foreach (var stake in Stakes)
+                            {
+                                <MudSelectItem Value="@stake">@stake</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="4">
+                        <MudNumericField @ref="TableNumericField" For="@(() => Model.SelectedTableNumber)" 
+                            @bind-Value="Model.SelectedTableNumber" Label="Table #" HideSpinButtons="true" />
+                    </MudItem>
+                    <MudItem xs="9">
+                        <MudAutocomplete T="string"
                                          @ref="PlayerAutocomplete"
                                          Label="Player Name"
-                                         For="@(() => Model.SelectedPlayer)"
-                                         Value="Model.SelectedPlayer"
-                                         ValueChanged="OnValueChanged"
-                                         SearchFunc="SearchPlayers"
-                                         ToStringFunc="@(p => p?.Name)"
+                                         For="@(() => Model.SelectedName)"
+                                         @bind-Value="Model.SelectedName"
+                                         OnKeyDown="@HandleKeyDownAsync"
+                                         SearchFunc="@SearchNamesAsync"
+                                         ToStringFunc="@(x => x)"
                                          Clearable="true"
                                          ResetValueOnEmptyText="true"
-                                         SelectValueOnTab="true"
+                                         CoerceText="false"
+                                         CoerceValue="true"
                                          AdornmentIcon="@Icons.Material.Filled.Search"
                                          AdornmentColor="Color.Primary">
                             <ProgressIndicatorInPopoverTemplate>
@@ -36,22 +49,8 @@
                             </ProgressIndicatorInPopoverTemplate>
                         </MudAutocomplete>
                     </MudItem>
-                    <MudItem xs="2">
-                        <MudIconButton Icon="@Icons.Material.Filled.PersonAdd" Color="Color.Primary" OnClick="AddNewPlayerAsync" Size="Size.Large" />
-                    </MudItem>
-                    <MudItem xs="4">
-                        <MudSelect T="Stake" For="@(() => Model.SelectedStake)" @bind-Value="Model.SelectedStake" Label="Stake">
-                            @foreach (var stake in AllStakes)
-                            {
-                                <MudSelectItem Value="@stake">@stake</MudSelectItem>
-                            }
-                        </MudSelect>
-                    </MudItem>
-                    <MudItem xs="4">
-                        <MudNumericField For="@(() => Model.SelectedTableNumber)" @bind-Value="Model.SelectedTableNumber" Label="Table #" HideSpinButtons="true" />
-                    </MudItem>
-                    <MudItem xs="4">
-                        <MudNumericField For="@(() => Model.Hands)" @bind-Value="Model.Hands" Label="Hands" HideSpinButtons="true" />
+                    <MudItem xs="3">
+                        <MudNumericField @ref="HandNumericField" For="@(() => Model.Hands)" @bind-Value="Model.Hands" Label="Hands" HideSpinButtons="true" />
                     </MudItem>
                     <MudItem xs="3">
                         <MudNumericField For="@(() => Model.Vpip)" @bind-Value="Model.Vpip" Label="VPIP" HideSpinButtons="true" />
@@ -66,7 +65,7 @@
                         <MudNumericField For="@(() => Model.ThreeBet)" @bind-Value="Model.ThreeBet" Label="3bet" HideSpinButtons="true" />
                     </MudItem>
                     <MudItem xs="12" Class="d-flex justify-center">
-                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-8">Aggregate Stats</MudButton>
+                        <MudButton OnClick="@BeforeSubmit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-8">Aggregate</MudButton>
                     </MudItem>
                 </MudGrid>
             </MudItem>
@@ -79,8 +78,8 @@
                     <div class="mt-auto">
                         <MudDivider />
                         <div class="d-flex pa-4 justify-end">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Secondary" OnClick="ClearPlayerFields" />
-                            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Primary" OnClick="CopyPlayerNote" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Secondary" OnClick="@ClearPlayerFields" />
+                            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Primary" OnClick="@CopyPlayerNote" />
                         </div>
                     </div>
                 </MudPaper>
