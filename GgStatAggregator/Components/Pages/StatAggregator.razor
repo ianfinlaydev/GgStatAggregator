@@ -14,7 +14,7 @@
                 <MudText Typo="Typo.h5" GutterBottom="true">Player Stats</MudText>
                 <MudGrid>
                     <MudItem xs="4">
-                        <MudSelect T="Stake" For="@(() => Model.SelectedStake)" @bind-Value="Model.SelectedStake" Label="Stake">
+                        <MudSelect T="Stake" For="@(() => Model.SelectedStake)" @bind-Value="Model.SelectedStake" Label="Stake" Disabled="@_isFormDisabled">
                             @foreach (var stake in Stakes)
                             {
                                 <MudSelectItem Value="@stake">@stake</MudSelectItem>
@@ -22,8 +22,7 @@
                         </MudSelect>
                     </MudItem>
                     <MudItem xs="4">
-                        <MudNumericField @ref="TableNumericField" For="@(() => Model.SelectedTableNumber)" 
-                            @bind-Value="Model.SelectedTableNumber" Label="Table #" HideSpinButtons="true" />
+                        <MudNumericField @ref="TableNumericField" For="@(() => Model.SelectedTableNumber)" @bind-Value="Model.SelectedTableNumber" Label="Table #" HideSpinButtons="true" Disabled="@_isFormDisabled" />
                     </MudItem>
                     <MudItem xs="9">
                         <MudAutocomplete T="string"
@@ -39,7 +38,8 @@
                                          CoerceText="false"
                                          CoerceValue="true"
                                          AdornmentIcon="@Icons.Material.Filled.Search"
-                                         AdornmentColor="Color.Primary">
+                                         AdornmentColor="Color.Primary"
+                                         Disabled="@_isFormDisabled">
                             <ProgressIndicatorInPopoverTemplate>
                                 <MudList T="string" ReadOnly>
                                     <MudListItem>
@@ -50,22 +50,22 @@
                         </MudAutocomplete>
                     </MudItem>
                     <MudItem xs="3">
-                        <MudNumericField @ref="HandNumericField" For="@(() => Model.Hands)" @bind-Value="Model.Hands" Label="Hands" HideSpinButtons="true" />
+                        <MudNumericField @ref="HandNumericField" For="@(() => Model.Hands)" @bind-Value="Model.Hands" Label="Hands" HideSpinButtons="true" Disabled="@_isFormDisabled" />
                     </MudItem>
                     <MudItem xs="3">
-                        <MudNumericField For="@(() => Model.Vpip)" @bind-Value="Model.Vpip" Label="VPIP" HideSpinButtons="true" />
+                        <MudNumericField For="@(() => Model.Vpip)" @bind-Value="Model.Vpip" Label="VPIP" HideSpinButtons="true" Disabled="@_isFormDisabled" />
                     </MudItem>
                     <MudItem xs="3">
-                        <MudNumericField For="@(() => Model.Pfr)" @bind-Value="Model.Pfr" Label="PFR" HideSpinButtons="true" />
+                        <MudNumericField For="@(() => Model.Pfr)" @bind-Value="Model.Pfr" Label="PFR" HideSpinButtons="true" Disabled="@_isFormDisabled" />
                     </MudItem>
                     <MudItem xs="3">
-                        <MudNumericField For="@(() => Model.Steal)" @bind-Value="Model.Steal" Label="ATS" HideSpinButtons="true" />
+                        <MudNumericField For="@(() => Model.Steal)" @bind-Value="Model.Steal" Label="ATS" HideSpinButtons="true" Disabled="@_isFormDisabled" />
                     </MudItem>
                     <MudItem xs="3">
-                        <MudNumericField For="@(() => Model.ThreeBet)" @bind-Value="Model.ThreeBet" Label="3bet" HideSpinButtons="true" />
+                        <MudNumericField For="@(() => Model.ThreeBet)" @bind-Value="Model.ThreeBet" Label="3bet" HideSpinButtons="true" Disabled="@_isFormDisabled" />
                     </MudItem>
                     <MudItem xs="12" Class="d-flex justify-center">
-                        <MudButton OnClick="@BeforeSubmit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-8">Aggregate</MudButton>
+                        <MudButton OnClick="@BeforeSubmit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-8" Disabled="@_isFormDisabled">Submit</MudButton>
                     </MudItem>
                 </MudGrid>
             </MudItem>
@@ -78,7 +78,7 @@
                     <div class="mt-auto">
                         <MudDivider />
                         <div class="d-flex pa-4 justify-end">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Secondary" OnClick="@ClearPlayerFields" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Secondary" OnClick="@EnableForm" />
                             <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Primary" OnClick="@CopyPlayerNote" />
                         </div>
                     </div>

@@ -8,6 +8,7 @@ using Serilog.Sinks.MSSqlServer.Sinks.MSSqlServer.Options;
 using Serilog.Events;
 using GgStatAggregator.Logger;
 using Serilog.Sinks.MSSqlServer;
+using GgStatAggregator.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,9 +36,9 @@ Log.Logger = LoggerUtility.ConfigureLogger(builder.Configuration.GetConnectionSt
 builder.Host.UseSerilog();
 
 // Add services
-builder.Services.AddScoped(typeof(IPlayerService), typeof(PlayerService));
-builder.Services.AddScoped(typeof(IStatSetService), typeof(StatSetService));
-builder.Services.AddScoped(typeof(ITableService), typeof(TableService));
+builder.Services.AddScoped<IService<Player>, PlayerService>();
+builder.Services.AddScoped<IService<StatSet>, StatSetService>();
+builder.Services.AddScoped<IService<Table>, TableService>();
 
 var app = builder.Build();
 

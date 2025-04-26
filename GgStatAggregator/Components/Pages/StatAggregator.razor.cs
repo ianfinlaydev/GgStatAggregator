@@ -12,16 +12,16 @@ using static MudBlazor.Colors;
 
 namespace GgStatAggregator.Components.Pages
 {
-    public partial class StatAggregator(IPlayerService playerService, 
-        IStatSetService statSetService, 
-        ITableService tableService, 
+    public partial class StatAggregator(IService<Player> playerService, 
+        IService<StatSet> statSetService, 
+        IService<Table> tableService, 
         IDialogService dialogService,
         IJSRuntime js,
         ILogger<StatAggregator> logger) : ComponentBase
     {
-        private readonly IPlayerService PlayerService = playerService;
-        private readonly IStatSetService StatSetService = statSetService;
-        private readonly ITableService TableService = tableService;
+        private readonly IService<Player> PlayerService = playerService;
+        private readonly IService<StatSet> StatSetService = statSetService;
+        private readonly IService<Table> TableService = tableService;
         private readonly IDialogService DialogService = dialogService;
         private readonly IJSRuntime JS = js;
         private readonly ILogger<StatAggregator> Logger = logger;
@@ -33,6 +33,8 @@ namespace GgStatAggregator.Components.Pages
         private MudNumericField<int> HandNumericField;
         private MudNumericField<int> TableNumericField;
         private EditForm editForm;
+
+        private bool _isFormDisabled = false;
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
@@ -52,16 +54,13 @@ namespace GgStatAggregator.Components.Pages
         private async Task BeforeSubmit()
         {
             if (!editForm.EditContext.Validate())
-            {
                 return;
-            }
 
-            Model.SelectedTable = (await TableService
-                .GetAllAsync(t => t.Stake == Model.SelectedStake && t.TableNumber == Model.SelectedTableNumber)).FirstOrDefault();
+            // Try to find existing table
+            Model.SelectedTable = await TableService.GetFirstOrDefaultAsync(
+                t => t.Stake == Model.SelectedStake && t.TableNumber == Model.SelectedTableNumber);
 
-            Model.SelectedPlayer = (await PlayerService
-                .GetAllAsync(p => p.Name == Model.SelectedName)).FirstOrDefault();
-
+            // If no table found, create and save a new one
             if (Model.SelectedTable == null)
             {
                 Model.SelectedTable = new Table()
@@ -70,9 +69,13 @@ namespace GgStatAggregator.Components.Pages
                     TableNumber = Model.SelectedTableNumber
                 };
 
-                await TableService.AddAsync(Model.SelectedTable);
+                Model.SelectedTable = await TableService.AddAsync(Model.SelectedTable);
             }
 
+            // Try to find existing player
+            Model.SelectedPlayer = await PlayerService.GetFirstOrDefaultAsync(p => p.Name == Model.SelectedName);
+
+            // If no player found, ask user if they want to create one
             if (Model.SelectedPlayer == null)
             {
                 var result = await DialogService.ShowMessageBox(
@@ -93,6 +96,7 @@ namespace GgStatAggregator.Components.Pages
                 await PlayerService.AddAsync(Model.SelectedPlayer);
             }
 
+            // Only proceed if both entities are ready
             if (Model.SelectedTable is not null 
                 && Model.SelectedPlayer is not null)
             {
@@ -113,14 +117,24 @@ namespace GgStatAggregator.Components.Pages
                 ThreeBet = Model.ThreeBet
             };
 
-            await StatSetService.AddAsync(Model.StatSet);
+            // Save the new StatSet
+            Model.StatSet = await StatSetService.AddAsync(Model.StatSet);
 
-            Model.SelectedPlayer.StatSets = await StatSetService.GetAllAsync(s => s.PlayerId == Model.SelectedPlayer.Id);
+            // Refresh the player's stat sets
+            Model.SelectedPlayer.StatSets = await StatSetService.GetAllAsync(
+                s => s.PlayerId == Model.SelectedPlayer.Id
+            );
+
+            // Build player note
             Model.PlayerNote = Model.SelectedPlayer.ToString();
 
+            // Disable the form after submission
+            _isFormDisabled = true;
+
+            // Refresh the UI
             StateHasChanged();
 
-            //TODO: default exit on escape key
+            // Show success message
             await DialogService.ShowMessageBox("Success", 
                 $"Stats for {Model.SelectedPlayer.Name} added successfully.", 
                 yesText: "OK",
@@ -137,28 +151,33 @@ namespace GgStatAggregator.Components.Pages
             {
                 Model.SelectedName = PlayerAutocomplete.Text;
                 await PlayerAutocomplete.CloseMenuAsync();
-                await HandNumericField.FocusAsync();
+
+                if (args.ShiftKey)
+                    await TableNumericField.FocusAsync();
+                else
+                    await HandNumericField.FocusAsync();
             }
             else if (args.Key == "Escape")
             {
                 await PlayerAutocomplete.CloseMenuAsync();
-                await Task.Delay(100); // Give the dropdown time to close for Blur to work
+                // Give the dropdown time to close for Blur to work
+                await Task.Delay(100); 
                 await PlayerAutocomplete.BlurAsync();
             }
         }
 
-        private async Task CopyPlayerNote() => await JS.InvokeVoidAsync("navigator.clipboard.writeText", Model.PlayerNote);
+        private async Task CopyPlayerNote() 
+            => await JS.InvokeVoidAsync("navigator.clipboard.writeText", Model.PlayerNote);
 
-        private async Task ClearPlayerFields() 
+        private void EnableForm() 
         {
-            Model.SelectedPlayer = null;
-            Model.PlayerNote = string.Empty;
-            Model.Hands = 0;
-            Model.Vpip = 0;
-            Model.Pfr = 0;
-            Model.Steal = 0;
-            Model.ThreeBet = 0;
-            await PlayerAutocomplete.ClearAsync();
+            Model = new StatAggregatorForm
+            {
+                SelectedStake = Model.SelectedStake,
+                SelectedTableNumber = Model.SelectedTableNumber
+            };
+
+            _isFormDisabled = false;
         }
     }
 
