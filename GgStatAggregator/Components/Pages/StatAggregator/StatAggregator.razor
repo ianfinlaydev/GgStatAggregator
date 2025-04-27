@@ -6,7 +6,7 @@
 
 <PageTitle>Stat Aggregator</PageTitle>
 
-<EditForm @ref="editForm" Model="@Model" OnValidSubmit="@HandleValidSubmit">
+<EditForm @ref="editForm" Model="@Form" OnValidSubmit="@HandleValidSubmit">
     <DataAnnotationsValidator />
     <MudContainer Class="mt-16" MaxWidth="MaxWidth.Medium">
         <MudGrid Spacing="12" Class="mt-16">
@@ -14,22 +14,22 @@
                 <MudText Typo="Typo.h5" GutterBottom="true">Player Stats</MudText>
                 <MudGrid>
                     <MudItem xs="4">
-                        <MudSelect T="Stake" For="@(() => Model.SelectedStake)" @bind-Value="Model.SelectedStake" Label="Stake" Disabled="@_isFormDisabled">
-                            @foreach (var stake in Stakes)
+                        <MudSelect T="Stake" For="@(() => Form.SelectedStake)" @bind-Value="Form.SelectedStake" Label="Stake" Disabled="@_isFormDisabled">
+                            @foreach (var stake in Enum.GetValues<Stake>().Cast<Stake>())
                             {
                                 <MudSelectItem Value="@stake">@stake</MudSelectItem>
                             }
                         </MudSelect>
                     </MudItem>
                     <MudItem xs="4">
-                        <MudNumericField @ref="TableNumericField" For="@(() => Model.SelectedTableNumber)" @bind-Value="Model.SelectedTableNumber" Label="Table #" HideSpinButtons="true" Disabled="@_isFormDisabled" />
+                        <MudNumericField @ref="TableNumericField" For="@(() => Form.SelectedTableNumber)" @bind-Value="Form.SelectedTableNumber" Label="Table #" HideSpinButtons="true" Disabled="@_isFormDisabled" />
                     </MudItem>
                     <MudItem xs="9">
                         <MudAutocomplete T="string"
                                          @ref="PlayerAutocomplete"
                                          Label="Player Name"
-                                         For="@(() => Model.SelectedName)"
-                                         @bind-Value="Model.SelectedName"
+                                         For="@(() => Form.SelectedName)"
+                                         @bind-Value="Form.SelectedName"
                                          OnKeyDown="@HandleKeyDownAsync"
                                          SearchFunc="@SearchNamesAsync"
                                          ToStringFunc="@(x => x)"
@@ -50,19 +50,19 @@
                         </MudAutocomplete>
                     </MudItem>
                     <MudItem xs="3">
-                        <MudNumericField @ref="HandNumericField" For="@(() => Model.Hands)" @bind-Value="Model.Hands" Label="Hands" HideSpinButtons="true" Disabled="@_isFormDisabled" />
+                        <MudNumericField @ref="HandNumericField" For="@(() => Form.Hands)" @bind-Value="Form.Hands" Label="Hands" HideSpinButtons="true" Disabled="@_isFormDisabled" />
                     </MudItem>
                     <MudItem xs="3">
-                        <MudNumericField For="@(() => Model.Vpip)" @bind-Value="Model.Vpip" Label="VPIP" HideSpinButtons="true" Disabled="@_isFormDisabled" />
+                        <MudNumericField For="@(() => Form.Vpip)" @bind-Value="Form.Vpip" Label="VPIP" HideSpinButtons="true" Disabled="@_isFormDisabled" />
                     </MudItem>
                     <MudItem xs="3">
-                        <MudNumericField For="@(() => Model.Pfr)" @bind-Value="Model.Pfr" Label="PFR" HideSpinButtons="true" Disabled="@_isFormDisabled" />
+                        <MudNumericField For="@(() => Form.Pfr)" @bind-Value="Form.Pfr" Label="PFR" HideSpinButtons="true" Disabled="@_isFormDisabled" />
                     </MudItem>
                     <MudItem xs="3">
-                        <MudNumericField For="@(() => Model.Steal)" @bind-Value="Model.Steal" Label="ATS" HideSpinButtons="true" Disabled="@_isFormDisabled" />
+                        <MudNumericField For="@(() => Form.Steal)" @bind-Value="Form.Steal" Label="ATS" HideSpinButtons="true" Disabled="@_isFormDisabled" />
                     </MudItem>
                     <MudItem xs="3">
-                        <MudNumericField For="@(() => Model.ThreeBet)" @bind-Value="Model.ThreeBet" Label="3bet" HideSpinButtons="true" Disabled="@_isFormDisabled" />
+                        <MudNumericField For="@(() => Form.ThreeBet)" @bind-Value="Form.ThreeBet" Label="3bet" HideSpinButtons="true" Disabled="@_isFormDisabled" />
                     </MudItem>
                     <MudItem xs="12" Class="d-flex justify-center">
                         <MudButton OnClick="@BeforeSubmit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="mt-8" Disabled="@_isFormDisabled">Submit</MudButton>
@@ -73,7 +73,7 @@
                 <MudText Typo="Typo.h5" GutterBottom="true">Notes</MudText>
                 <MudPaper Class="d-flex flex-column" Style="height:100%;" Outlined="true">
                     <MudText WhiteSpace="WhiteSpace.PreWrap">
-                        <pre>@Model.PlayerNote</pre>
+                        <pre>@Form.PlayerNote</pre>
                     </MudText>
                     <div class="mt-auto">
                         <MudDivider />

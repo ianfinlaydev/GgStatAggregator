@@ -6,13 +6,13 @@ namespace GgStatAggregator.Models
     public class StatSet
     {
         [Key]
-        public int Id { get; set; }
+        public Guid Id { get; set; } = Guid.NewGuid();
 
         [ForeignKey(nameof(Player))]
-        public int PlayerId { get; set; }
+        public Guid PlayerId { get; set; }
 
         [ForeignKey(nameof(Table))]
-        public int TableId { get; set; }
+        public Guid TableId { get; set; }
 
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Value must be at least 1.")]

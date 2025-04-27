@@ -15,9 +15,8 @@ namespace GgStatAggregator.Migrations
                 name: "Players",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    Name = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -29,10 +28,9 @@ namespace GgStatAggregator.Migrations
                 name: "Tables",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Stake = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    Stake = table.Column<int>(type: "int", nullable: false),
+                    TableNumber = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -43,10 +41,9 @@ namespace GgStatAggregator.Migrations
                 name: "StatSets",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    PlayerId = table.Column<int>(type: "int", nullable: false),
-                    TableId = table.Column<int>(type: "int", nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    PlayerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    TableId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Hands = table.Column<int>(type: "int", nullable: false),
                     Vpip = table.Column<double>(type: "float", nullable: false),
                     Pfr = table.Column<double>(type: "float", nullable: false),
@@ -72,6 +69,12 @@ namespace GgStatAggregator.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Players_Name",
+                table: "Players",
+                column: "Name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_StatSets_PlayerId",
                 table: "StatSets",
                 column: "PlayerId");
@@ -80,6 +83,12 @@ namespace GgStatAggregator.Migrations
                 name: "IX_StatSets_TableId",
                 table: "StatSets",
                 column: "TableId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Tables_Stake_TableNumber",
+                table: "Tables",
+                columns: new[] { "Stake", "TableNumber" },
+                unique: true);
         }
 
         /// <inheritdoc />

@@ -5,7 +5,7 @@ namespace GgStatAggregator.Models
     public class Table
     {
         [Key]
-        public int Id { get; set; }
+        public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required]
         public Stake Stake { get; set; }

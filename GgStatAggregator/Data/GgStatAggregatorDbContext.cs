@@ -19,6 +19,18 @@ namespace GgStatAggregator.Data
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<Player>()
+                .Property(p => p.Id)
+                .HasDefaultValueSql("NEWID()");
+
+            modelBuilder.Entity<StatSet>()
+                .Property(s => s.Id)
+                .HasDefaultValueSql("NEWID()");
+
+            modelBuilder.Entity<Table>()
+                .Property(t => t.Id)
+                .HasDefaultValueSql("NEWID()");
+
+            modelBuilder.Entity<Player>()
                 .HasIndex(p => p.Name)
                 .IsUnique();
 

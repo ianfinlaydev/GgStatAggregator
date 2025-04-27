@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GgStatAggregator.Migrations
 {
     [DbContext(typeof(GgStatAggregatorDbContext))]
-    [Migration("20250421192157_DevelopmentVsProduction")]
-    partial class DevelopmentVsProduction
+    [Migration("20250427035340_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -27,31 +27,32 @@ namespace GgStatAggregator.Migrations
 
             modelBuilder.Entity("GgStatAggregator.Models.Player", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
 
                     b.ToTable("Players");
                 });
 
             modelBuilder.Entity("GgStatAggregator.Models.StatSet", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -62,14 +63,14 @@ namespace GgStatAggregator.Migrations
                     b.Property<double>("Pfr")
                         .HasColumnType("float");
 
-                    b.Property<int>("PlayerId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("PlayerId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<double>("Steal")
                         .HasColumnType("float");
 
-                    b.Property<int>("TableId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("TableId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<double>("ThreeBet")
                         .HasColumnType("float");
@@ -88,11 +89,10 @@ namespace GgStatAggregator.Migrations
 
             modelBuilder.Entity("GgStatAggregator.Models.Table", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<int>("Stake")
                         .HasColumnType("int");
@@ -101,6 +101,9 @@ namespace GgStatAggregator.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Stake", "TableNumber")
+                        .IsUnique();
 
                     b.ToTable("Tables");
                 });
