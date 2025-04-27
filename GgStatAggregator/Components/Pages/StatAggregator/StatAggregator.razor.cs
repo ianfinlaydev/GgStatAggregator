@@ -1,4 +1,5 @@
 ﻿using GgStatAggregator.Models;
+using GgStatAggregator.Models.Extensions;
 using GgStatAggregator.Result;
 using GgStatAggregator.Services;
 using Microsoft.AspNetCore.Components;
@@ -31,25 +32,34 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
         private MudAutocomplete<string> PlayerAutocomplete;
         private MudNumericField<int> HandNumericField;
         private MudNumericField<int> TableNumericField;
-        private EditForm editForm;
+        private EditForm EditForm;
 
         private bool _isFormDisabled = false;
 
-        protected override async Task OnAfterRenderAsync(bool firstRender)
-        {
-            if (firstRender && PlayerAutocomplete is not null)
-            {
-                await TableNumericField.FocusAsync();
-            }
-        }
-
-        private async Task<IEnumerable<string>> SearchNamesAsync(string value, CancellationToken cancellationToken)
-        {
-            var result = await PlayerService.GetAllAsync(p => EF.Functions.Like(p.Name, $"%{value}%"));
-            return result.Value.Select(p => p.Name);
-        }
-
         private async Task BeforeSubmit()
+        {
+            var tableResult = await PrepareTable();
+            if (tableResult.IsFailure)
+                return;
+
+            var playerResult = await PreparePlayer();
+            if (playerResult.IsFailure)
+                return;
+
+            var statSetResult = await PrepareStatSet();
+            if (statSetResult.IsFailure)
+                return;
+
+            if (!EditForm.EditContext.Validate())
+            {
+                await StatSetService.ClearStagedChanges();
+                return;
+            }
+
+            await HandleValidSubmit();
+        }
+
+        private async Task<Result<Table>> PrepareTable()
         {
             // Try to find existing table
             var tableResult = await TableService.GetFirstOrDefaultAsync(
@@ -58,20 +68,28 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
             // If no table found
             if (tableResult.IsFailure)
             {
+                // Stage new table
                 tableResult = await TableService.StageAsync(new Table
                 {
                     Stake = Form.SelectedStake,
                     TableNumber = Form.SelectedTableNumber
-                });
+                }, StageAction.Add);
             }
 
-            // If table was staged successfully
-            if (tableResult.IsSuccess)
+            // If table was staged unsuccessfully
+            if (tableResult.IsFailure)
             {
-                Form.SelectedTable = tableResult.Value;
+                await TableService.ClearStagedChanges();
+                return tableResult;
             }
 
+            //Table was staged successfully
+            Form.SelectedTable = tableResult.Value;
+            return tableResult;
+        }
 
+        private async Task<Result<Player>> PreparePlayer()
+        {
             // Try to find existing player
             var playerResult = await PlayerService.GetFirstOrDefaultAsync(p => p.Name == Form.SelectedName);
 
@@ -86,32 +104,82 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
                     cancelText: "Cancel",
                     options: new DialogOptions { CloseOnEscapeKey = true });
 
-                // User did not want to continue with new player
-                if (dialogResult != true)
-                    return;
-
-                // Stage a new player
-                playerResult = await PlayerService.StageAsync(new Player { Name = Form.SelectedName });
+                // Stage a new player if dialog result is true
+                playerResult = dialogResult != true
+                    ? playerResult
+                    : await PlayerService.StageAsync(new Player { Name = Form.SelectedName }, StageAction.Add);
             }
 
-            // If player was staged successfully
-            if (playerResult.IsSuccess)
+            // If player was staged unsuccessfully
+            if (playerResult.IsFailure)
             {
-                Form.SelectedPlayer = playerResult.Value;
+                await PlayerService.ClearStagedChanges();
+                return playerResult;
             }
 
-            if (!editForm.EditContext.Validate())
-            {
-                await StatSetService.ClearStagedChanges();
-            }
-
-            await HandleValidSubmit();
+            // Player was staged successfully
+            Form.SelectedPlayer = playerResult.Value;
+            return playerResult;
         }
 
-        private async Task HandleValidSubmit()
+        private async Task<Result<StatSet>> PrepareStatSet()
         {
-            //Stage new stat set
-            var statSetResult = await StatSetService.StageAsync(new StatSet
+            bool? dialogResult = null;
+
+            // Try to find existing stat set
+            var statSetResult = await StatSetService.GetFirstOrDefaultAsync(
+                s => s.PlayerId == Form.SelectedPlayer.Id && s.TableId == Form.SelectedTable.Id,
+                orderBy: q => q.OrderByDescending(s => s.CreatedAt));
+
+            // If existing stat set found with for player and table
+            // prompt user to update or add new
+            if (statSetResult.IsSuccess)
+            {
+                var existingStatSet = statSetResult.Value;
+                if (existingStatSet.IsPossibleDuplicate(Form.Hands))
+                {
+                    dialogResult = await DialogService.ShowMessageBox(
+                        "Possible Duplicate",
+                        $"A stat set for [{Form.SelectedName}] at [{Form.SelectedTable}] was already " +
+                        $"created at [{existingStatSet.CreatedAt}]. Do you want to update it?",
+                        yesText: "Yes",
+                        noText: "No - Add New",
+                        cancelText: null,
+                        options: new DialogOptions { CloseOnEscapeKey = true });
+
+                    if (dialogResult == null)
+                    {
+                        await StatSetService.ClearStagedChanges();
+                        return Result<StatSet>.Failure("User cancelled the operation.");
+                    }
+                    else if (dialogResult == true)
+                    {
+                        // Stage update to existing stat set
+                        existingStatSet.Hands = Form.Hands;
+                        existingStatSet.Vpip = Form.Vpip;
+                        existingStatSet.Pfr = Form.Pfr;
+                        existingStatSet.Steal = Form.Steal;
+                        existingStatSet.ThreeBet = Form.ThreeBet;
+
+                        statSetResult = await StatSetService.StageAsync(existingStatSet, StageAction.Update);
+
+                        // If stat set was staged successfully
+                        if (statSetResult.IsSuccess)
+                        {
+                            Form.SelectedStatSet = statSetResult.Value;
+                        }
+
+                        return statSetResult;
+                    }
+                    else if (dialogResult == false)
+                    {
+                        // Fall through to 'Stage new stat set'
+                    }
+                }
+            }
+
+            // Stage new stat set
+            statSetResult = await StatSetService.StageAsync(new StatSet
             {
                 PlayerId = Form.SelectedPlayer.Id,
                 TableId = Form.SelectedTable.Id,
@@ -120,18 +188,23 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
                 Pfr = Form.Pfr,
                 Steal = Form.Steal,
                 ThreeBet = Form.ThreeBet
-            });
+            }, StageAction.Add);
 
-            // If staging failed, show error message
+            // If stat set was staged unsuccessfully
             if (statSetResult.IsFailure)
             {
-                await DialogService.ShowMessageBox("Error",
-                    $"Failed to stage stat set: {statSetResult.Message}",
-                    yesText: "OK",
-                    options: new DialogOptions { CloseOnEscapeKey = true });
-                return;
+                await StatSetService.ClearStagedChanges();
+                return statSetResult;
             }
 
+            // Stat set was staged successfully
+            Form.SelectedStatSet = statSetResult.Value;
+            return statSetResult;
+        }
+
+        private async Task HandleValidSubmit()
+        {
+            //Stage new stat set
             await StatSetService.CommitAsync();
 
             // Build player note
@@ -148,6 +221,12 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
                 $"Stats for {Form.SelectedPlayer.Name} added successfully.", 
                 yesText: "OK",
                 options: new DialogOptions { CloseOnEscapeKey = true });
+        }
+
+        private async Task<IEnumerable<string>> SearchNamesAsync(string value, CancellationToken cancellationToken)
+        {
+            var result = await PlayerService.GetAllAsync(p => EF.Functions.Like(p.Name, $"%{value}%"));
+            return result.Value.Select(p => p.Name);
         }
 
         private async Task HandleKeyDownAsync(KeyboardEventArgs args)
@@ -182,8 +261,18 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
         {
             await PlayerAutocomplete.ClearAsync();
             Form.Clear();
+
             _isFormDisabled = false;
+
             await TableNumericField.FocusAsync();
+        }
+
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (firstRender && PlayerAutocomplete is not null)
+            {
+                await TableNumericField.FocusAsync();
+            }
         }
     }
 }

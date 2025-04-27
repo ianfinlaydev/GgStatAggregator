@@ -12,6 +12,8 @@ namespace GgStatAggregator.Models
 
         [Required]
         public int TableNumber { get; set; }
+
+        public override string ToString() => $"{Stake}({TableNumber})";
     }
 
     public enum Stake

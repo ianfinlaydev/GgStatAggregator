@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using GgStatAggregator.Data;
 using GgStatAggregator.Result;
 using GgStatAggregator.Helpers;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace GgStatAggregator.Services
 {
@@ -10,10 +11,17 @@ namespace GgStatAggregator.Services
     {
         protected readonly GgStatAggregatorDbContext _dbContext = dbContext;
 
-        public virtual async Task<Result<T>> GetFirstOrDefaultAsync(Expression<Func<T, bool>> predicate)
+        public virtual async Task<Result<T>> GetFirstOrDefaultAsync(
+            Expression<Func<T, bool>> predicate,
+            Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null)
         {
-            T model = await _dbContext.Set<T>()
-                .FirstOrDefaultAsync(predicate);
+            IQueryable<T> query = _dbContext.Set<T>().Where(predicate);
+
+            if (orderBy != null)
+                query = orderBy(query);
+
+
+            T model = await query.FirstOrDefaultAsync(predicate);
 
             if (model == null)
                 return Result<T>.Failure($"{typeof(T).Name} not found");
@@ -53,10 +61,24 @@ namespace GgStatAggregator.Services
             return await ExecuteDbContextOperationAsync(() => _dbContext.SaveChangesAsync(), "deleting", entity);
         }
 
-        public virtual async Task<Result<T>> StageAsync(T entity)
+        public virtual async Task<Result<T>> StageAsync(T entity, StageAction action)
         {
-            _dbContext.Set<T>().Add(entity);
-            return await ExecuteDbContextOperationAsync(() => Task.CompletedTask, "staging", entity);
+            switch (action)
+            {
+                case StageAction.Add:
+                    _dbContext.Set<T>().Add(entity);
+                    break;
+                case StageAction.Update:
+                    _dbContext.Set<T>().Update(entity);
+                    break;
+                case StageAction.Delete:
+                    _dbContext.Set<T>().Remove(entity);
+                    break;
+                default:
+                    return Result<T>.Failure($"Invalid action: {GetActionName(action)}");
+            }
+
+            return await ExecuteDbContextOperationAsync(() => Task.CompletedTask, GetActionName(action), entity);
         }
 
         public bool HasStagedChanges()
@@ -93,5 +115,20 @@ namespace GgStatAggregator.Services
                 return Result<T>.Failure($"Unexpected error while {action} {typeof(T).Name}: {ex.Message}");
             }
         }
+
+        private static string GetActionName(StageAction action) => action switch
+        {
+            StageAction.Add => "staging add",
+            StageAction.Update => "staing update",
+            StageAction.Delete => "staging delete",
+            _ => "unknown action"
+        };
+    }
+
+    public enum StageAction
+    {
+        Add,
+        Update,
+        Delete
     }
 }

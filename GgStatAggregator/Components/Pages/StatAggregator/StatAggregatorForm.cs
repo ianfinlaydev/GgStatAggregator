@@ -45,7 +45,8 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
         [Required]
         public Table SelectedTable { get; set; }
 
-        public StatSet StatSet { get; set; }
+        [Required]
+        public StatSet SelectedStatSet { get; set; }
 
         public string PlayerNote { get; set; }
 
@@ -60,7 +61,7 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
             PlayerNote = string.Empty;
             SelectedPlayer = null;
             SelectedTable = null;
-            StatSet = null;
+            SelectedStatSet = null;
         }
     }
 }

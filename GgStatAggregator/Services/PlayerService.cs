@@ -8,8 +8,12 @@ namespace GgStatAggregator.Services
 {
     public class PlayerService(GgStatAggregatorDbContext dbContext) : BaseService<Player>(dbContext)
     {
-        public override async Task<Result<Player>> GetFirstOrDefaultAsync(Expression<Func<Player, bool>> predicate)
+        public override async Task<Result<Player>> GetFirstOrDefaultAsync(
+            Expression<Func<Player, bool>> predicate, 
+            Func<IQueryable<Player>, IOrderedQueryable<Player>> orderBy = null)
         {
+
+			//TODO: add orderby functionality (see BaseService)
             Player player = await _dbContext.Players
                 .Include(p => p.StatSets)
                 .FirstOrDefaultAsync(predicate);
