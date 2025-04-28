@@ -206,9 +206,6 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
             // Stage new stat set
             await StatSetService.CommitAsync();
 
-            // Add the new stat set to the player
-            Form.SelectedPlayer.StatSets.Add(Form.SelectedStatSet);
-
             // Build player note
             Form.PlayerNote = Form.SelectedPlayer.ToString();
 
