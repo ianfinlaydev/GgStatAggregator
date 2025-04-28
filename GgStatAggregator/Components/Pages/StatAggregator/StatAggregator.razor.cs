@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using MudBlazor;
-using System.Threading.Tasks;
 
 namespace GgStatAggregator.Components.Pages.StatAggregator
 {
@@ -204,8 +203,11 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
 
         private async Task HandleValidSubmit()
         {
-            //Stage new stat set
+            // Stage new stat set
             await StatSetService.CommitAsync();
+
+            // Add the new stat set to the player
+            Form.SelectedPlayer.StatSets.Add(Form.SelectedStatSet);
 
             // Build player note
             Form.PlayerNote = Form.SelectedPlayer.ToString();
@@ -229,29 +231,40 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
             return result.Value.Select(p => p.Name);
         }
 
+        private async Task OnSelectedNameChangedAsync(string value)
+        {
+            Form.SelectedName = value;
+            EditForm.EditContext.NotifyFieldChanged(EditForm.EditContext.Field("SelectedName"));
+            await Task.CompletedTask;
+        }
+
+        private async Task HandleBlurAsync(FocusEventArgs args)
+        {
+            await OnSelectedNameChangedAsync(PlayerAutocomplete.Text);
+        }
+
         private async Task HandleKeyDownAsync(KeyboardEventArgs args)
         {
-            if (args.Key == "Enter")
-            {
-                //Allow default behaviour
-            }
-            else if (args.Key == "Tab")
-            {
-                Form.SelectedName = PlayerAutocomplete.Text;
-                await PlayerAutocomplete.CloseMenuAsync();
+            // Default Autocomplete behaviour - select highlighted name
+            if (args.Key == "Enter") return;
 
-                if (args.ShiftKey)
-                    await TableNumericField.FocusAsync();
-                else
-                    await HandNumericField.FocusAsync();
+            // Select the current text whether the player exists or not
+            if (args.Key == "Tab")
+            {
+                await OnSelectedNameChangedAsync(PlayerAutocomplete.Text);
+                await CloseAutocompleteMenuAsync();
             }
+            // Close the Autocomplete control
             else if (args.Key == "Escape")
             {
-                await PlayerAutocomplete.CloseMenuAsync();
-                // Give the dropdown time to close for Blur to work
-                await Task.Delay(100); 
-                await PlayerAutocomplete.BlurAsync();
+                await CloseAutocompleteMenuAsync();
             }
+        }
+
+        private async Task CloseAutocompleteMenuAsync()
+        {
+            await PlayerAutocomplete.CloseMenuAsync();
+            await Task.Delay(100); // Give the dropdown time to close for Blur/FocusAsync to work
         }
 
         private async Task CopyPlayerNote() 

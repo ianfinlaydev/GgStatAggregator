@@ -16,7 +16,7 @@
             // Calculate the hours that have elapsed since the existing stat set was created
             var elapsedHours = (DateTime.UtcNow - existingStatSet.CreatedAt).TotalHours;
 
-            // If the elapsed time is more than a day ago, it is most likely not a duplicate
+            // If the elapsed time is more than a day ago, it is unlikely to be a duplicate
             if (elapsedHours > 24)
                 return false;
 

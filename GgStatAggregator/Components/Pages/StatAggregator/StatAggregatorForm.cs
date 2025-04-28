@@ -7,7 +7,7 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
 {
     public class StatAggregatorForm
     {
-        [Required(ErrorMessage = "Player name must be selected.")]
+        [Required]
         [StringLength(50, MinimumLength = 1, ErrorMessage = "Player name must be 1-50 character.")]
         public string SelectedName { get; set; }
 
