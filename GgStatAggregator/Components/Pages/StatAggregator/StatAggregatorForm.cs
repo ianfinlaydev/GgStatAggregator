@@ -9,7 +9,7 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
     {
         [Required]
         [StringLength(50, MinimumLength = 1, ErrorMessage = "Player name must be 1-50 character.")]
-        public string SelectedName { get; set; }
+        public string? SelectedName { get; set; }
 
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Stake must be selected.")]
@@ -17,38 +17,38 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
 
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Value must be at least 1.")]
-        public int SelectedTableNumber { get; set; }
+        public int? SelectedTableNumber { get; set; }
 
         [Required]
         [Range(1, int.MaxValue, ErrorMessage = "Value must be at least 1.")]
-        public int Hands { get; set; }
+        public int? Hands { get; set; }
 
         [Required]
         [Range(0, 100, ErrorMessage = "Value must be between 0 and 100.")]
-        public double Vpip { get; set; }
+        public double? Vpip { get; set; }
 
         [Required]
         [Range(0, 100, ErrorMessage = "Value must be between 0 and 100.")]
-        public double Pfr { get; set; }
+        public double? Pfr { get; set; }
 
         [Required]
         [Range(0, 100, ErrorMessage = "Value must be between 0 and 100.")]
-        public double Steal { get; set; }
+        public double? Steal { get; set; }
 
         [Required]
         [Range(0, 100, ErrorMessage = "Value must be between 0 and 100.")]
-        public double ThreeBet { get; set; }
+        public double? ThreeBet { get; set; }
 
         [Required]
-        public Player SelectedPlayer { get; set; }
+        public Player? SelectedPlayer { get; set; }
 
         [Required]
-        public Table SelectedTable { get; set; }
+        public Table? SelectedTable { get; set; }
 
         [Required]
-        public StatSet SelectedStatSet { get; set; }
+        public StatSet? SelectedStatSet { get; set; }
 
-        public string PlayerNote { get; set; }
+        public string? PlayerNote { get; set; }
 
         public void Clear()
         {

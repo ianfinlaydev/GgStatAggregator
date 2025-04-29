@@ -28,10 +28,9 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
         private readonly ILogger<StatAggregator> Logger = logger;
         private readonly StatAggregatorForm Form= form;
 
-        private MudAutocomplete<string> PlayerAutocomplete;
-        private MudNumericField<int> HandNumericField;
-        private MudNumericField<int> TableNumericField;
-        private EditForm EditForm;
+        private MudAutocomplete<string?>? PlayerAutocomplete;
+        private MudNumericField<int?>? TableNumericField;
+        private EditForm? EditForm;
 
         private bool _isFormDisabled = false;
 
@@ -49,20 +48,21 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
             if (statSetResult.IsFailure)
                 return;
 
-            if (!EditForm.EditContext.Validate())
+            if (EditForm!.EditContext!.Validate() == true)
+            {
+                await HandleValidSubmit();
+            }
+            else
             {
                 await StatSetService.ClearStagedChanges();
-                return;
             }
-
-            await HandleValidSubmit();
         }
 
-        private async Task<Result<Table>> PrepareTable()
+        private async Task<Result<Table?>> PrepareTable()
         {
             // Try to find existing table
-            var tableResult = await TableService.GetFirstOrDefaultAsync(
-                t => t.Stake == Form.SelectedStake && t.TableNumber == Form.SelectedTableNumber);
+            Result<Table?> tableResult = await TableService.GetFirstOrDefaultAsync(
+                t => t!.Stake == Form.SelectedStake && t.TableNumber == Form.SelectedTableNumber);
 
             // If no table found
             if (tableResult.IsFailure)
@@ -71,7 +71,8 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
                 tableResult = await TableService.StageAsync(new Table
                 {
                     Stake = Form.SelectedStake,
-                    TableNumber = Form.SelectedTableNumber
+                    // Assign -1 as default invalid value; form validation will catch and block invalid submissions
+                    TableNumber = Form.SelectedTableNumber ?? -1 
                 }, StageAction.Add);
             }
 
@@ -83,14 +84,14 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
             }
 
             //Table was staged successfully
-            Form.SelectedTable = tableResult.Value;
+            Form.SelectedTable = tableResult.Value!;
             return tableResult;
         }
 
-        private async Task<Result<Player>> PreparePlayer()
+        private async Task<Result<Player?>> PreparePlayer()
         {
             // Try to find existing player
-            var playerResult = await PlayerService.GetFirstOrDefaultAsync(p => p.Name == Form.SelectedName);
+            var playerResult = await PlayerService.GetFirstOrDefaultAsync(p => p!.Name == Form.SelectedName);
 
             // If no player found
             if (playerResult.IsFailure)
@@ -106,7 +107,8 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
                 // Stage a new player if dialog result is true
                 playerResult = dialogResult != true
                     ? playerResult
-                    : await PlayerService.StageAsync(new Player { Name = Form.SelectedName }, StageAction.Add);
+                    // Assign string.Empty as default invalid value; form validation will catch and block invalid submissions
+                    : await PlayerService.StageAsync(new Player { Name = Form.SelectedName ?? string.Empty }, StageAction.Add);
             }
 
             // If player was staged unsuccessfully
@@ -117,27 +119,26 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
             }
 
             // Player was staged successfully
-            Form.SelectedPlayer = playerResult.Value;
+            Form.SelectedPlayer = playerResult.Value!;
             return playerResult;
         }
 
-        private async Task<Result<StatSet>> PrepareStatSet()
+        private async Task<Result<StatSet?>> PrepareStatSet()
         {
-            bool? dialogResult = null;
-
             // Try to find existing stat set
             var statSetResult = await StatSetService.GetFirstOrDefaultAsync(
-                s => s.PlayerId == Form.SelectedPlayer.Id && s.TableId == Form.SelectedTable.Id,
-                orderBy: q => q.OrderByDescending(s => s.CreatedAt));
+                s => s!.PlayerId == Form.SelectedPlayer!.Id && s.TableId == Form.SelectedTable!.Id,
+                orderBy: q => q.OrderByDescending(s => s!.CreatedAt));
 
             // If existing stat set found with for player and table
             // prompt user to update or add new
             if (statSetResult.IsSuccess)
             {
-                var existingStatSet = statSetResult.Value;
-                if (existingStatSet.IsPossibleDuplicate(Form.Hands))
+                // Assign -1 as default invalid values; form validation will catch and block invalid submissions
+                var existingStatSet = statSetResult.Value!;
+                if (existingStatSet.IsPossibleDuplicate(Form.Hands ?? -1))
                 {
-                    dialogResult = await DialogService.ShowMessageBox(
+                    var dialogResult = await DialogService.ShowMessageBox(
                         "Possible Duplicate",
                         $"A stat set for [{Form.SelectedName}] at [{Form.SelectedTable}] was already " +
                         $"created at [{existingStatSet.CreatedAt}]. Do you want to update it?",
@@ -149,23 +150,23 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
                     if (dialogResult == null)
                     {
                         await StatSetService.ClearStagedChanges();
-                        return Result<StatSet>.Failure("User cancelled the operation.");
+                        return Result<StatSet?>.Failure("User cancelled the operation.");
                     }
                     else if (dialogResult == true)
                     {
                         // Stage update to existing stat set
-                        existingStatSet.Hands = Form.Hands;
-                        existingStatSet.Vpip = Form.Vpip;
-                        existingStatSet.Pfr = Form.Pfr;
-                        existingStatSet.Steal = Form.Steal;
-                        existingStatSet.ThreeBet = Form.ThreeBet;
+                        existingStatSet.Hands = Form.Hands ?? -1;
+                        existingStatSet.Vpip = Form.Vpip ?? -1;
+                        existingStatSet.Pfr = Form.Pfr ?? -1;
+                        existingStatSet.Steal = Form.Steal ?? -1;
+                        existingStatSet.ThreeBet = Form.ThreeBet ?? -1;
 
                         statSetResult = await StatSetService.StageAsync(existingStatSet, StageAction.Update);
 
                         // If stat set was staged successfully
                         if (statSetResult.IsSuccess)
                         {
-                            Form.SelectedStatSet = statSetResult.Value;
+                            Form.SelectedStatSet = statSetResult.Value!;
                         }
 
                         return statSetResult;
@@ -180,13 +181,13 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
             // Stage new stat set
             statSetResult = await StatSetService.StageAsync(new StatSet
             {
-                PlayerId = Form.SelectedPlayer.Id,
-                TableId = Form.SelectedTable.Id,
-                Hands = Form.Hands,
-                Vpip = Form.Vpip,
-                Pfr = Form.Pfr,
-                Steal = Form.Steal,
-                ThreeBet = Form.ThreeBet
+                PlayerId = Form.SelectedPlayer!.Id,
+                TableId = Form.SelectedTable!.Id,
+                Hands = Form.Hands ?? -1,
+                Vpip = Form.Vpip ?? -1,
+                Pfr = Form.Pfr ?? -1,
+                Steal = Form.Steal ?? -1,
+                ThreeBet = Form.ThreeBet ?? -1
             }, StageAction.Add);
 
             // If stat set was staged unsuccessfully
@@ -197,7 +198,7 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
             }
 
             // Stat set was staged successfully
-            Form.SelectedStatSet = statSetResult.Value;
+            Form.SelectedStatSet = statSetResult.Value!;
             return statSetResult;
         }
 
@@ -207,7 +208,7 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
             await StatSetService.CommitAsync();
 
             // Build player note
-            Form.PlayerNote = Form.SelectedPlayer.ToString();
+            Form.PlayerNote = Form.SelectedPlayer!.ToString();
 
             // Disable the form after submission
             _isFormDisabled = true;
@@ -225,19 +226,19 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
         private async Task<IEnumerable<string>> SearchNamesAsync(string value, CancellationToken cancellationToken)
         {
             var result = await PlayerService.GetAllAsync(p => EF.Functions.Like(p.Name, $"%{value}%"));
-            return result.Value.Select(p => p.Name);
+            return result.Value!.Select(p => p.Name);
         }
 
-        private async Task OnSelectedNameChangedAsync(string value)
+        private async Task OnSelectedNameChangedAsync(string? value)
         {
             Form.SelectedName = value;
-            EditForm.EditContext.NotifyFieldChanged(EditForm.EditContext.Field("SelectedName"));
+            EditForm!.EditContext!.NotifyFieldChanged(EditForm.EditContext.Field("SelectedName"));
             await Task.CompletedTask;
         }
 
         private async Task HandleBlurAsync(FocusEventArgs args)
         {
-            await OnSelectedNameChangedAsync(PlayerAutocomplete.Text);
+            await OnSelectedNameChangedAsync(PlayerAutocomplete!.Text);
         }
 
         private async Task HandleKeyDownAsync(KeyboardEventArgs args)
@@ -248,7 +249,7 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
             // Select the current text whether the player exists or not
             if (args.Key == "Tab")
             {
-                await OnSelectedNameChangedAsync(PlayerAutocomplete.Text);
+                await OnSelectedNameChangedAsync(PlayerAutocomplete!.Text);
                 await CloseAutocompleteMenuAsync();
             }
             // Close the Autocomplete control
@@ -260,7 +261,7 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
 
         private async Task CloseAutocompleteMenuAsync()
         {
-            await PlayerAutocomplete.CloseMenuAsync();
+            await PlayerAutocomplete!.CloseMenuAsync();
             await Task.Delay(100); // Give the dropdown time to close for Blur/FocusAsync to work
         }
 
@@ -269,19 +270,19 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
 
         private async Task EnableForm() 
         {
-            await PlayerAutocomplete.ClearAsync();
+            await PlayerAutocomplete!.ClearAsync();
             Form.Clear();
 
             _isFormDisabled = false;
 
-            await TableNumericField.FocusAsync();
+            await TableNumericField!.FocusAsync();
         }
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             if (firstRender && PlayerAutocomplete is not null)
             {
-                await TableNumericField.FocusAsync();
+                await TableNumericField!.FocusAsync();
             }
         }
     }

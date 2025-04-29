@@ -52,7 +52,7 @@
                         </MudAutocomplete>
                     </MudItem>
                     <MudItem xs="3">
-                        <MudNumericField @ref="HandNumericField" For="@(() => Form.Hands)" @bind-Value="Form.Hands" Label="Hands" HideSpinButtons="true" Disabled="@_isFormDisabled" />
+                        <MudNumericField For="@(() => Form.Hands)" @bind-Value="Form.Hands" Label="Hands" HideSpinButtons="true" Disabled="@_isFormDisabled" />
                     </MudItem>
                     <MudItem xs="3">
                         <MudNumericField For="@(() => Form.Vpip)" @bind-Value="Form.Vpip" Label="VPIP" HideSpinButtons="true" Disabled="@_isFormDisabled" />

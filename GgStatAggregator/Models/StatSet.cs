@@ -38,8 +38,8 @@ namespace GgStatAggregator.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
 
-        public Player Player { get; set; }
+        public Player? Player { get; set; }
 
-        public Table Table { get; set; }
+        public Table? Table { get; set; }
     }
 }

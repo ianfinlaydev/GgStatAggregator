@@ -12,9 +12,9 @@
         {
             var result = await resultTask;
             if (result.IsFailure)
-                return Result<U>.Failure(result.Message);
+                return Result<U>.Failure(result.Message!);
 
-            return Result<U>.Success(func(result.Value));
+            return Result<U>.Success(func(result.Value!));
         }
     }
 }
