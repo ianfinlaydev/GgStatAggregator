@@ -2,11 +2,8 @@
 
 namespace GgStatAggregator.Models
 {
-    public class Table
+    public class Table : EntityBase
     {
-        [Key]
-        public Guid Id { get; set; } = Guid.NewGuid();
-
         [Required]
         public Stake Stake { get; set; }
 

@@ -126,9 +126,8 @@ namespace GgStatAggregator.Components.Pages.StatAggregator
         private async Task<Result<StatSet?>> PrepareStatSet()
         {
             // Try to find existing stat set
-            var statSetResult = await StatSetService.GetFirstOrDefaultAsync(
-                s => s!.PlayerId == Form.SelectedPlayer!.Id && s.TableId == Form.SelectedTable!.Id,
-                orderBy: q => q.OrderByDescending(s => s!.CreatedAt));
+            var statSetResult = await StatSetService.GetMostRecentOrDefaultAsync(
+                s => s!.PlayerId == Form.SelectedPlayer!.Id && s.TableId == Form.SelectedTable!.Id);
 
             // If existing stat set found with for player and table
             // prompt user to update or add new

@@ -7,7 +7,7 @@ namespace GgStatAggregator.Logger
 {
     public static class LoggerUtility
     {
-        public static Serilog.ILogger ConfigureLogger(string defaultConnection) => new LoggerConfiguration()
+        public static Serilog.ILogger ConfigureLogger(string? defaultConnection) => new LoggerConfiguration()
             .Enrich.With(new UtcTimestampEnricher())
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
             .MinimumLevel.Override("System", LogEventLevel.Warning)

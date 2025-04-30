@@ -99,6 +99,7 @@ namespace GgStatAggregator.Tests.Models.Extensions
                     .Invoke(null, [elapsedHours]);
 
                 // Assert
+                // TODO: address null warning
                 ((double)confidence).Should().BeLessThanOrEqualTo(expectedMaxConfidence);
             }
         }

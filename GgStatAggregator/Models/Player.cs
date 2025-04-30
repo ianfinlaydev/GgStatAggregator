@@ -2,16 +2,10 @@
 
 namespace GgStatAggregator.Models
 {
-    public class Player
+    public class Player : EntityBase
     {
-        [Key]
-        public Guid Id { get; set; } = Guid.NewGuid();
-
         [Required]
         public required string Name { get; set; }
-
-        [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public ICollection<StatSet> StatSets { get; set; } = [];
 

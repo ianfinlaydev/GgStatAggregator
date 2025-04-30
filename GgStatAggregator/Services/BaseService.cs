@@ -4,35 +4,27 @@ using GgStatAggregator.Data;
 using GgStatAggregator.Result;
 using GgStatAggregator.Helpers;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using GgStatAggregator.Models;
 
 namespace GgStatAggregator.Services
 {
-    public abstract class BaseService<T>(GgStatAggregatorDbContext dbContext) : IService<T> where T : class
+    public abstract class BaseService<T>(GgStatAggregatorDbContext dbContext) 
+        : IService<T> where T : EntityBase
     {
         protected readonly GgStatAggregatorDbContext _dbContext = dbContext;
 
-        public virtual async Task<Result<T?>> GetFirstOrDefaultAsync(
-            Expression<Func<T?, bool>> predicate,
-            Func<IQueryable<T?>, IOrderedQueryable<T?>>? orderBy = null)
-        {
-            IQueryable<T?> query = _dbContext.Set<T>().Where(predicate);
+        #region Public Methods
+        public virtual async Task<Result<T?>> GetFirstOrDefaultAsync(Expression<Func<T?, bool>> predicate)
+            => await GetFirstOrDefaultInternalAsync(predicate);
 
-            if (orderBy != null)
-                query = orderBy(query);
-
-
-            T? model = await query.FirstOrDefaultAsync(predicate);
-
-            if (model == null)
-                return Result<T?>.Failure($"{typeof(T).Name} not found");
-
-            return Result<T?>.Success(model);
-        }
+        public async Task<Result<T?>> GetMostRecentOrDefaultAsync(Expression<Func<T?, bool>> predicate) 
+            => await GetFirstOrDefaultInternalAsync(
+                predicate, 
+                q => q.OrderByDescending(e => e!.CreatedAt));
 
         public virtual async Task<Result<List<T>>> GetAllAsync(Expression<Func<T, bool>>? predicate = null)
         {
-            IQueryable<T> query = _dbContext.Set<T>().AsNoTracking()
-                .Where(predicate ?? (_ => true));
+            IQueryable<T> query = BuildQuery().Where(predicate ?? (_ => true));
 
             List<T> list = await query.ToListAsync();
 
@@ -82,21 +74,40 @@ namespace GgStatAggregator.Services
         }
 
         public bool HasStagedChanges()
-        {
-            return _dbContext.ChangeTracker
-                .Entries<T>()
-                .Any(e => e.State != EntityState.Unchanged && e.State != EntityState.Detached);
-        }
+            => _dbContext.ChangeTracker
+            .Entries<T>()
+            .Any(e => e.State != EntityState.Unchanged && e.State != EntityState.Detached);
 
-        public Task CommitAsync()
-        {
-            return _dbContext.SaveChangesAsync();
-        }
+        public Task CommitAsync() => _dbContext.SaveChangesAsync();
 
         public Task ClearStagedChanges()
         {
             _dbContext.ChangeTracker.Clear();
             return Task.CompletedTask;
+        }
+        #endregion Public Methods
+
+        #region Protected Methods
+        protected virtual IQueryable<T> BuildQuery() => _dbContext.Set<T>();
+        #endregion Protected Methods
+
+        #region Private Methods
+        private async Task<Result<T?>> GetFirstOrDefaultInternalAsync(
+            Expression<Func<T?, bool>> predicate,
+            Func<IQueryable<T?>, IOrderedQueryable<T?>>? orderBy = null)
+        {
+            IQueryable<T?> query = BuildQuery().Where(predicate);
+
+            if (orderBy != null)
+                query = orderBy(query);
+
+
+            T? model = await query.FirstOrDefaultAsync();
+
+            if (model == null)
+                return Result<T?>.Failure($"{typeof(T).Name} not found");
+
+            return Result<T?>.Success(model);
         }
 
         private static async Task<Result<T?>> ExecuteDbContextOperationAsync(Func<Task> operation, string action, T entity)
@@ -123,6 +134,7 @@ namespace GgStatAggregator.Services
             StageAction.Delete => "staging delete",
             _ => "unknown action"
         };
+        #endregion Private Methods
     }
 
     public enum StageAction

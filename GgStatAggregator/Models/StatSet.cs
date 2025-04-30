@@ -3,11 +3,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace GgStatAggregator.Models
 {
-    public class StatSet
+    public class StatSet : EntityBase
     {
-        [Key]
-        public Guid Id { get; set; } = Guid.NewGuid();
-
         [ForeignKey(nameof(Player))]
         public Guid PlayerId { get; set; }
 
@@ -33,10 +30,6 @@ namespace GgStatAggregator.Models
         [Required]
         [Range(0, 100, ErrorMessage = "Value must be between 0 and 100.")]
         public double ThreeBet { get; set; }
-
-        [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
 
         public Player? Player { get; set; }
 

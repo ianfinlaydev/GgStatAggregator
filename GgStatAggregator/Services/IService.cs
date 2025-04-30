@@ -1,11 +1,13 @@
-﻿using GgStatAggregator.Result;
+﻿using GgStatAggregator.Models;
+using GgStatAggregator.Result;
 using System.Linq.Expressions;
 
 namespace GgStatAggregator.Services
 {
-    public interface IService<T> where T : class
+    public interface IService<T> where T : EntityBase
     {
-        Task<Result<T?>> GetFirstOrDefaultAsync(Expression<Func<T?, bool>> predicate, Func<IQueryable<T?>, IOrderedQueryable<T?>>? orderBy = null);
+        Task<Result<T?>> GetFirstOrDefaultAsync(Expression<Func<T?, bool>> predicate);
+        Task<Result<T?>> GetMostRecentOrDefaultAsync(Expression<Func<T?, bool>> predicate);
         Task<Result<List<T>>> GetAllAsync(Expression<Func<T, bool>>? predicate = null);
         Task<Result<T?>> AddAsync(T entity);
         Task<Result<T?>> UpdateAsync(T entity);
