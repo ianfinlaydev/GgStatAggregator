@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using GgStatAggregator.Models;
 using GgStatAggregator.Models.Extensions;
+using System.Reflection;
 
 namespace GgStatAggregator.Tests.Models.Extensions
 {
@@ -9,10 +10,11 @@ namespace GgStatAggregator.Tests.Models.Extensions
     {
         public class StatSetExtensionsTests
         {
-            // Helper method to create a StatSet with specified createdAt and hands
-            private static StatSet CreateStatSet(DateTime createdAt, int hands) => new()
+            // Helper method to create a StatSet with specified timestamps and hands
+            private static StatSet CreateStatSet(DateTime createdAt, int hands, DateTime? updatedAt = null) => new()
             {
                 CreatedAt = createdAt,
+                UpdatedAt = updatedAt,
                 Hands = hands
             };
 
@@ -86,6 +88,22 @@ namespace GgStatAggregator.Tests.Models.Extensions
                 result.Should().BeFalse();
             }
 
+            [Fact]
+            public void IsPossibleDuplicate_ShouldUseUpdatedAt_WhenPresent()
+            {
+                // Arrange
+                var createdAt = DateTime.UtcNow.AddHours(-30);     // Should be ignored
+                var updatedAt = DateTime.UtcNow.AddMinutes(-45);   // Should be used
+                var statSet = CreateStatSet(createdAt, hands: 100, updatedAt: updatedAt);
+                int newHands = 120;
+
+                // Act
+                var result = statSet.IsPossibleDuplicate(newHands);
+
+                // Assert
+                result.Should().BeTrue("Elapsed time is under 1 hour based on UpdatedAt, so it should be a duplicate");
+            }
+
             [Theory]
             [InlineData(0, 0)]        // No elapsed time → 0% confidence
             [InlineData(1, 34)]       // After 1 hour, confidence ~34% (approximate)
@@ -95,14 +113,21 @@ namespace GgStatAggregator.Tests.Models.Extensions
             {
                 // Act
                 var confidence = typeof(StatSetExtensions)
-                    .GetMethod("CalculateConfidence", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                    .GetMethod("CalculateConfidence", BindingFlags.NonPublic | BindingFlags.Static)!
                     .Invoke(null, [elapsedHours]);
 
                 // Assert
-                // TODO: address null warning
-                ((double)confidence).Should().BeLessThanOrEqualTo(expectedMaxConfidence);
+                if (confidence is double result)
+                {
+                    result.Should().BeLessThanOrEqualTo(expectedMaxConfidence);
+                }
+                else
+                {
+                    Assert.Fail("Expected a non-null double result from CalculateConfidence");
+                }
             }
         }
+
     }
 
 }
